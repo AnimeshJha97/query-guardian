@@ -1,96 +1,113 @@
 # Production Deployment
 
-The root `docker-compose.yml` is a demo/dev stack (seeded demo database,
-dashboard dev server, no TLS). This guide covers running Query Guardian
-for real.
+The root `docker-compose.yml` is a demo/development stack. The production
+stack includes a static dashboard image, the API and collector, and Caddy for
+automatic TLS. It intentionally does not include Postgres or seed data.
 
-> Status: this guide describes the target state from Sprint 8 of
-> `docs/sprint-plan.md`. If `docker-compose.prod.yml` doesn't exist yet in
-> your checkout, that sprint hasn't been built yet — use this doc as the
-> spec, not as a guarantee it's already there.
+## 1. Bootstrap the configuration
 
-## 1. Separate metadata storage from any demo data
-
-Production should point `QG_METADATA_DATABASE_URL` at its own managed
-Postgres instance (RDS, Cloud SQL, or a Postgres you operate yourself) —
-not the same instance as any database you're monitoring, and never the
-bundled demo Postgres image.
-
-## 2. Use `docker-compose.prod.yml`
+From a fresh clone, with Docker and the Compose plugin installed:
 
 ```bash
-docker compose -f docker-compose.prod.yml up -d
+sh install.sh
 ```
 
-Differences from the dev stack:
+The script asks for the public hostname and the metadata and target database
+URLs. It creates a permission-restricted `.env`, generates independent random
+session, ingest, and encryption secrets, and prints a generated admin password
+once. Store that password in your password manager.
+
+## 2. Use separate, persistent metadata storage
+
+Point `QG_METADATA_DATABASE_URL` at its own managed Postgres instance (RDS,
+Cloud SQL, or a Postgres you operate yourself), not a database being monitored
+and never the bundled demo Postgres image.
+
+If you operate metadata Postgres yourself, keep its data on a named or external
+persistent volume and back that volume up. The production Compose file does not
+manage that database or its volume; `QG_METADATA_DATABASE_URL` is the boundary
+between Query Guardian and your managed database.
+
+## 3. Start the production stack
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+Unlike the development stack, it has:
+
 - No demo Postgres or seed data
-- Dashboard is a static production build served behind a lightweight
-  static server, not the Vite dev server
-- Resource limits and `restart: always` on every service
-- No ports exposed directly — everything routes through the reverse
-  proxy in step 3
+- A Vite production bundle served by unprivileged nginx
+- Resource limits and `restart: unless-stopped` on every service
+- Only Caddy publishing ports (TCP 80/443 and UDP 443); application containers
+  remain on the private Compose network
 
-## 3. Put a reverse proxy in front (TLS)
+## 4. Caddy reverse proxy and automatic TLS
 
-Example using Caddy (automatic Let's Encrypt certs):
+Set `QG_DOMAIN` to a hostname whose DNS A/AAAA record points at the host. The
+included `Caddyfile` is deliberately small:
+
 ```caddyfile
-guardian.yourdomain.com {
-  reverse_proxy dashboard:5173
-}
-
-guardian-api.yourdomain.com {
-  reverse_proxy api:4000
+{$QG_DOMAIN} {
+  encode zstd gzip
+  reverse_proxy dashboard:8080
 }
 ```
-Traefik with Docker labels works equally well if that's already part of
-your stack.
 
-## 4. Secrets
+Caddy obtains and renews the certificate automatically. The dashboard nginx
+server sends `/api/*` to the API over the private network, so the browser uses
+one origin and the API never needs a public port. Allow inbound TCP 80 and 443
+(and optionally UDP 443 for HTTP/3). Certificate state persists in the
+`caddy_data` volume.
 
-Generate these once and store them in your secrets manager (not in a
-committed `.env`):
-- `QG_ADMIN_PASSWORD_HASH` — Argon2id hash for the self-hosted admin login
+If an existing reverse proxy already owns ports 80/443, remove the `caddy`
+service, attach that proxy to the Compose network, and route it to
+`dashboard:8080`.
+
+## 5. Secrets
+
+Store these in a secrets manager, never a committed `.env`:
+
+- `QG_ADMIN_PASSWORD_HASH` — Argon2id hash for the admin login
 - `QG_SESSION_SECRET` — random session-signing secret (32+ characters)
 - `QG_INGEST_TOKEN` — independent collector service credential
-- `QG_ENCRYPTION_KEY` — encrypts stored DSNs at rest; **losing this key
-  means re-entering every monitored database's connection string**
-- `QG_TARGET_DATABASE_URL` — per monitored database, using the
-  least-privilege role from `docs/installation.md`
+- `QG_ENCRYPTION_KEY` — encrypts stored DSNs; losing it means re-entering every
+  monitored database connection string
+- `QG_TARGET_DATABASE_URL` — least-privilege connection described in
+  `docs/installation.md`
 
-`install.sh` (Sprint 8) generates the first two for you if you don't
-already have a secrets workflow.
+`install.sh` generates all four application secrets. It never stores the
+plaintext admin password.
 
-## 5. Backups
+## 6. Backups
 
-Back up the **metadata database**, not the databases you're monitoring
-(those are the user's responsibility). A simple daily job:
+Back up the metadata database, not the databases being monitored. A simple
+daily job is:
+
 ```bash
 pg_dump "$QG_METADATA_DATABASE_URL" | gzip > "backup-$(date +%F).sql.gz"
 ```
-See `scripts/backup-metadata-db.sh` once Sprint 7 lands for a maintained
-version of this.
 
-## 6. Retention
+The maintained wrapper is `scripts/backup-metadata-db.sh`.
 
-The self-hosted default is 7 days of raw `query_stats_snapshots` before
-they're rolled up into daily aggregates (Sprint 7). If you need longer
-raw retention, it's a config change, not a code change — check
-`packages/api/src/jobs/rollupSnapshots.ts` once it exists.
+## 7. Retention
 
-## 7. Monitoring the monitor
+Self-hosted deployments keep seven days of raw `query_stats_snapshots` by
+default before rolling them into daily aggregates. Set
+`QG_RAW_RETENTION_DAYS` to change this.
+
+## 8. Monitoring the monitor
 
 Query Guardian exposes:
-- `GET /health` — liveness
-- `GET /ready` — readiness (checks metadata DB connectivity)
 
-Point your existing uptime/monitoring tooling at these rather than
-building something bespoke.
+- `GET /health` — API liveness
+- `GET /ready` — API readiness, including metadata database connectivity
 
-## 8. Scaling notes
+These endpoints are private by default. Run checks inside the Compose network,
+or deliberately add a reverse-proxy route protected for your monitoring
+system.
 
-For the self-hosted OSS edition, one collector per monitored database is
-the expected topology — don't try to have a single collector poll
-multiple targets; it complicates the connection-security story for no
-real benefit at this scale. If you need to monitor many databases,
-that's what the hosted/enterprise tier's multi-database support is for
-(see `docs/roadmap.md`).
+## 9. Scaling notes
+
+The self-hosted OSS topology uses one collector per monitored database. For
+additional targets, add collector services with distinct target URLs and names.

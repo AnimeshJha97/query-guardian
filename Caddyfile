@@ -1,0 +1,4 @@
+{$QG_DOMAIN} {
+  encode zstd gzip
+  reverse_proxy dashboard:8080
+}

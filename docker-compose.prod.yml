@@ -1,4 +1,24 @@
 services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      dashboard: { condition: service_healthy }
+    environment:
+      QG_DOMAIN: ${QG_DOMAIN:?required}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    deploy:
+      resources:
+        limits: { cpus: "0.25", memory: 128M }
+        reservations: { cpus: "0.05", memory: 32M }
+
   api:
     build: { context: ., dockerfile: packages/api/Dockerfile }
     restart: unless-stopped
@@ -69,3 +89,6 @@ services:
         limits: { cpus: "0.25", memory: 128M }
         reservations: { cpus: "0.05", memory: 32M }
 
+volumes:
+  caddy_data:
+  caddy_config:
