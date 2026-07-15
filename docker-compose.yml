@@ -1,0 +1,69 @@
+services:
+  postgres:
+    build: ./docker/postgres-demo
+    environment:
+      POSTGRES_DB: appdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - pg_logs:/var/lib/postgresql/data/pglog
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: packages/api/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: 4000
+      QG_METADATA_DATABASE_URL: postgres://postgres:postgres_dev_password@postgres:5432/qg_meta
+      QG_ADMIN_PASSWORD_HASH: ${QG_ADMIN_PASSWORD_HASH}
+      QG_SESSION_SECRET: ${QG_SESSION_SECRET}
+      QG_INGEST_TOKEN: ${QG_INGEST_TOKEN}
+      QG_ENCRYPTION_KEY: ${QG_ENCRYPTION_KEY}
+    ports:
+      - "4000:4000"
+
+  collector:
+    build:
+      context: .
+      dockerfile: packages/collector/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      QG_TARGET_DATABASE_URL: postgres://query_guardian_reader:qg_reader_dev_password@postgres:5432/appdb
+      QG_TARGET_SSL_MODE: require
+      QG_CONNECTION_MODE: both
+      QG_POLL_INTERVAL_MS: 30000
+      QG_API_INGEST_URL: http://api:4000/api/ingest
+      QG_API_TOKEN: ${QG_INGEST_TOKEN}
+      # Display name the collector registers itself under on first ingest.
+      QG_DATABASE_NAME: demo
+      QG_AUTO_EXPLAIN_LOG_PATH: /var/log/postgresql/postgresql.log
+    volumes:
+      - pg_logs:/var/log/postgresql:ro
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: packages/dashboard/Dockerfile
+    depends_on:
+      - api
+    environment:
+      QG_API_URL: http://api:4000
+    ports:
+      - "5173:8080"
+
+volumes:
+  pg_data:
+  pg_logs:

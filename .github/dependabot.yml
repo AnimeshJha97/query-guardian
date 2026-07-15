@@ -1,0 +1,15 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+  - package-ecosystem: docker
+    directories:
+      - "/packages/api"
+      - "/packages/collector"
+      - "/packages/dashboard"
+      - "/docker/postgres-demo"
+    schedule:
+      interval: weekly

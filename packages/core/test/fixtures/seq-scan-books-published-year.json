@@ -1,0 +1,23 @@
+[
+  {
+    "Plan": {
+      "Node Type": "Seq Scan",
+      "Parallel Aware": false,
+      "Async Capable": false,
+      "Relation Name": "books",
+      "Alias": "books",
+      "Startup Cost": 0,
+      "Total Cost": 389,
+      "Plan Rows": 267,
+      "Plan Width": 27,
+      "Actual Startup Time": 0.018,
+      "Actual Total Time": 4.932,
+      "Actual Rows": 267,
+      "Actual Loops": 1,
+      "Filter": "(published_year = 1999)",
+      "Rows Removed by Filter": 19733
+    },
+    "Planning Time": 0.112,
+    "Execution Time": 4.985
+  }
+]

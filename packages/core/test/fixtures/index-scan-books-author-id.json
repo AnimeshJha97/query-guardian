@@ -1,0 +1,24 @@
+[
+  {
+    "Plan": {
+      "Node Type": "Index Scan",
+      "Parallel Aware": false,
+      "Async Capable": false,
+      "Scan Direction": "Forward",
+      "Index Name": "books_author_id_idx",
+      "Relation Name": "books",
+      "Alias": "books",
+      "Startup Cost": 0.29,
+      "Total Cost": 8.31,
+      "Plan Rows": 4,
+      "Plan Width": 27,
+      "Actual Startup Time": 0.015,
+      "Actual Total Time": 0.019,
+      "Actual Rows": 3,
+      "Actual Loops": 1,
+      "Index Cond": "(author_id = 42)"
+    },
+    "Planning Time": 0.143,
+    "Execution Time": 0.047
+  }
+]

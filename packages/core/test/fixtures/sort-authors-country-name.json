@@ -1,0 +1,41 @@
+[
+  {
+    "Plan": {
+      "Node Type": "Sort",
+      "Parallel Aware": false,
+      "Async Capable": false,
+      "Startup Cost": 15.64,
+      "Total Cost": 16.14,
+      "Plan Rows": 200,
+      "Plan Width": 19,
+      "Actual Startup Time": 0.127,
+      "Actual Total Time": 0.139,
+      "Actual Rows": 200,
+      "Actual Loops": 1,
+      "Sort Key": ["country", "name"],
+      "Sort Method": "quicksort",
+      "Sort Space Used": 36,
+      "Sort Space Type": "Memory",
+      "Plans": [
+        {
+          "Node Type": "Seq Scan",
+          "Parent Relationship": "Outer",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Relation Name": "authors",
+          "Alias": "authors",
+          "Startup Cost": 0,
+          "Total Cost": 4,
+          "Plan Rows": 200,
+          "Plan Width": 19,
+          "Actual Startup Time": 0.008,
+          "Actual Total Time": 0.035,
+          "Actual Rows": 200,
+          "Actual Loops": 1
+        }
+      ]
+    },
+    "Planning Time": 0.091,
+    "Execution Time": 0.164
+  }
+]

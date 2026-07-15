@@ -1,0 +1,107 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design tokens from the Claude Design project ("Query Guardian Dashboard Design").
+   Dark is the default; light overrides via [data-theme="light"] on <html>. */
+:root {
+  --accent: #5b8def;
+  --accent-bg: rgba(91, 141, 239, 0.15);
+  --accent-text-on: #0a0b0d;
+  --bg: #0a0b0d;
+  --bg-elev: #111317;
+  --bg-elev-2: #15171c;
+  --hover: #1b1e24;
+  --border: #212429;
+  --border-strong: #2c3038;
+  --text: #e7e8ea;
+  --text-muted: #8b8f98;
+  --text-faint: #5b5f68;
+  --danger: #e5615a;
+  --danger-bg: rgba(229, 97, 90, 0.12);
+  --warning: #e0a93e;
+  --warning-bg: rgba(224, 169, 62, 0.12);
+  --success: #4cb782;
+  --success-bg: rgba(76, 183, 130, 0.12);
+  --code-bg: #0d0e11;
+  --code-text: #d8dae0;
+  --shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="light"] {
+  --accent-bg: rgba(91, 141, 239, 0.1);
+  --accent-text-on: #ffffff;
+  --bg: #f7f7f8;
+  --bg-elev: #ffffff;
+  --bg-elev-2: #ffffff;
+  --hover: #f0f1f3;
+  --border: #e4e5e9;
+  --border-strong: #d3d5da;
+  --text: #16181d;
+  --text-muted: #63666e;
+  --text-faint: #9497a0;
+  --danger: #c6362e;
+  --danger-bg: rgba(198, 54, 46, 0.08);
+  --warning: #9c6500;
+  --warning-bg: rgba(180, 120, 12, 0.1);
+  --success: #1e8e5a;
+  --success-bg: rgba(30, 142, 90, 0.1);
+  --code-bg: #f1f2f5;
+  --code-text: #22252b;
+  --shadow: 0 1px 3px rgba(20, 20, 30, 0.08);
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+}
+
+::selection {
+  background: rgba(91, 141, 239, 0.35);
+}
+
+input::placeholder {
+  color: var(--text-faint);
+}
+
+input:focus,
+button:focus,
+textarea:focus {
+  outline: none;
+}
+
+input:focus-visible,
+button:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent-bg);
+  outline-offset: 1px;
+}
+
+@keyframes qg-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes qg-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes qg-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

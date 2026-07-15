@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1783949697538,
+      "tag": "0000_nostalgic_monster_badoon",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1783982328575,
+      "tag": "0001_powerful_daredevil",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783983000000,
+      "tag": "0002_detection_dedupe",
+      "breakpoints": true
+    }
+  ]
+}

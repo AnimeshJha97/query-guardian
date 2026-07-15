@@ -1,0 +1,2 @@
+CREATE UNIQUE INDEX IF NOT EXISTS "query_fingerprints_db_hash_idx" ON "query_fingerprints" USING btree ("database_id","query_hash");--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "query_stats_snapshots_fp_collected_idx" ON "query_stats_snapshots" USING btree ("fingerprint_id","collected_at");

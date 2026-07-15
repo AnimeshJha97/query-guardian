@@ -1,0 +1,26 @@
+{
+  "name": "query-guardian",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "packages/core",
+    "packages/collector",
+    "packages/api",
+    "packages/dashboard"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "dev:api": "npm run dev --workspace=packages/api",
+    "dev:collector": "npm run dev --workspace=packages/collector",
+    "dev:dashboard": "npm run dev --workspace=packages/dashboard",
+    "db:migrate": "npm run db:migrate --workspace=packages/api",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
