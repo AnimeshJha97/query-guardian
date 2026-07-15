@@ -106,4 +106,5 @@ export interface AutoExplainLogEntry {
   pid: number | null;
   planning_time_ms: number | null;
   execution_time_ms: number | null;
+  database_name?: string;
 }

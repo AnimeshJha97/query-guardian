@@ -54,10 +54,13 @@ export function detectNPlusOne(
 
     let windowStart = 0;
     for (let i = 0; i < sorted.length; i++) {
-      const windowStartTime = new Date(sorted[windowStart].occurredAt).getTime();
       const currentTime = new Date(sorted[i].occurredAt).getTime();
 
-      while ((currentTime - windowStartTime) / 1000 > opts.windowSeconds) {
+      while (
+        windowStart < i &&
+        (currentTime - new Date(sorted[windowStart].occurredAt).getTime()) / 1000 >
+          opts.windowSeconds
+      ) {
         windowStart++;
       }
 

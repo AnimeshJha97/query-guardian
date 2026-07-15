@@ -10,11 +10,13 @@ import { checkTargetPermissions } from "@query-guardian/core";
  * TLS is required by default. `sslmode=require` is the floor; production
  * deployments should use `verify-full` with a CA cert.
  */
-export function createTargetPool(dsn: string, sslMode: "require" | "verify-full") {
+export function createTargetPool(dsn: string, sslMode: "disable" | "require" | "verify-full") {
   return new pg.Pool({
     connectionString: dsn,
     ssl:
-      sslMode === "verify-full"
+      sslMode === "disable"
+        ? false
+        : sslMode === "verify-full"
         ? { rejectUnauthorized: true }
         : { rejectUnauthorized: false },
     // Small pool — the collector polls periodically, it isn't a request-serving app.

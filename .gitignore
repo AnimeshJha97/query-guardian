@@ -4,6 +4,8 @@ dist/
 
 # Test and compiler output
 coverage/
+playwright-report/
+test-results/
 *.tsbuildinfo
 
 # Local environment and secrets

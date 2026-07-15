@@ -180,7 +180,7 @@ grant, and why Query Guardian never needs write access to your database.
 | `QG_ENCRYPTION_KEY` | api | — (required in production) | 32-byte AES-256-GCM key for stored DSNs at rest |
 | `QG_METADATA_DATABASE_URL` | api | — (required) | Query Guardian's own storage, separate from monitored DBs |
 | `QG_TARGET_DATABASE_URL` | collector | — (required) | The database being monitored |
-| `QG_TARGET_SSL_MODE` | collector | `verify-full` | `require` or `verify-full` |
+| `QG_TARGET_SSL_MODE` | collector | `verify-full` | `require` or `verify-full`; `disable` is reserved for the bundled Compose demo |
 | `QG_CONNECTION_MODE` | collector | `both` | `direct`, `log_tail`, or `both` |
 | `QG_POLL_INTERVAL_MS` | collector | `30000` | `pg_stat_statements` polling interval |
 | `QG_API_INGEST_URL` | collector | `http://api:4000/api/ingest` | Where the collector posts batches |

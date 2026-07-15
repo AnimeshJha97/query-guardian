@@ -43,5 +43,9 @@ INSERT INTO books (author_id, title, published_year)
 SELECT (1 + (i % 200)), 'Book ' || i, 1950 + (i % 75)
 FROM generate_series(1, 20000) AS i;
 
+-- The tables are created after the role, so grant access after creation.
+-- This lets the seed workload use the same least-privilege demo account.
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO query_guardian_reader;
+
 ANALYZE authors;
 ANALYZE books;

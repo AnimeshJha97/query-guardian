@@ -54,13 +54,17 @@ function cookies(req: FastifyRequest): Record<string, string> {
 }
 
 export function sessionCookie(token: string): string {
-  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  const secure = cookieSecure() ? "; Secure" : "";
   return `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${SESSION_TTL_SECONDS}${secure}`;
 }
 
 export function clearSessionCookie(): string {
-  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  const secure = cookieSecure() ? "; Secure" : "";
   return `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${secure}`;
+}
+
+function cookieSecure(): boolean {
+  return process.env.QG_COOKIE_SECURE !== "false" && process.env.NODE_ENV === "production";
 }
 
 export async function verifyAdminPassword(password: string): Promise<boolean> {

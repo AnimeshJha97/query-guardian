@@ -1,4 +1,4 @@
-import { createReadStream, watchFile, statSync } from "node:fs";
+import { createReadStream, statSync, unwatchFile, watchFile } from "node:fs";
 import { createInterface } from "node:readline";
 import type { AutoExplainLogEntry } from "@query-guardian/core";
 
@@ -50,27 +50,46 @@ export function tailAutoExplainLog(
 
   watchFile(filePath, { interval: 1000 }, readNewLines);
 
-  return () => watchFile(filePath, () => {}); // Node has no unwatchFile-by-callback; caller should also call unwatchFile(filePath) if fully tearing down
+  return () => unwatchFile(filePath);
 }
 
-function parseAutoExplainLine(line: string): AutoExplainLogEntry | null {
-  // Strip a typical `log_line_prefix` like "2026-07-13 10:00:00 UTC [123]: " if present.
-  const jsonStart = line.indexOf("{");
-  if (jsonStart === -1) return null;
-
+export function parseAutoExplainLine(line: string): AutoExplainLogEntry | null {
   try {
-    const parsed = JSON.parse(line.slice(jsonStart));
-    // auto_explain JSON entries typically nest the plan under "Query Text"/"Plan".
+    const outer = JSON.parse(line.slice(line.indexOf("{")));
+    const message = typeof outer.message === "string" ? outer.message : line;
+    const objectStart = message.indexOf("{");
+    const arrayStart = message.indexOf("[");
+    const planStart = [objectStart, arrayStart].filter((i) => i >= 0).sort((a, b) => a - b)[0];
+    if (planStart === undefined) return null;
+
+    const decoded = JSON.parse(message.slice(planStart));
+    const parsed = Array.isArray(decoded) ? decoded[0] : decoded;
+    const plan = parsed?.Plan ?? parsed;
     return {
-      timestamp: new Date().toISOString(),
-      duration_ms: parsed["Execution Time"] ?? parsed["Plan"]?.["Actual Total Time"] ?? 0,
-      query: parsed["Query Text"] ?? "",
-      plan: parsed["Plan"] ?? parsed,
-      pid: parsed["PID"] ?? null,
+      timestamp: toIsoTimestamp(outer.timestamp),
+      duration_ms:
+        parsed?.["Execution Time"] ?? plan?.["Actual Total Time"] ?? extractDuration(message),
+      query: outer.query ?? parsed?.["Query Text"] ?? "",
+      plan,
+      pid: outer.pid ?? outer.process_id ?? parsed?.PID ?? null,
       planning_time_ms: parsed["Planning Time"] ?? null,
       execution_time_ms: parsed["Execution Time"] ?? null,
+      database_name: outer.dbname ?? outer.database_name,
     };
   } catch {
     return null; // partial/multi-line JSON — see module docstring
   }
+}
+
+function extractDuration(message: string): number {
+  const match = /duration:\s*([\d.]+)\s*ms/i.exec(message);
+  return match ? Number(match[1]) : 0;
+}
+
+function toIsoTimestamp(value: unknown): string {
+  if (typeof value === "string") {
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
+  }
+  return new Date().toISOString();
 }

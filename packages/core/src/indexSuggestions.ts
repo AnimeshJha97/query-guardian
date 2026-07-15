@@ -1,4 +1,4 @@
-import type { IndexSuggestion, SuggestionImpact } from "./types.js";
+import type { SuggestionImpact } from "./types.js";
 
 // Minimal shape of a Postgres EXPLAIN (FORMAT JSON) plan node.
 // Real plans have many more fields; we only read what the rules below need.

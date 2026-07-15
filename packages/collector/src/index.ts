@@ -7,13 +7,16 @@ import { IngestClient, type IngestStatsRow } from "./apiClient.js";
 const COLLECTOR_VERSION = "0.1.0";
 
 const TARGET_DSN = requireEnv("QG_TARGET_DATABASE_URL");
-const SSL_MODE = (process.env.QG_TARGET_SSL_MODE as "require" | "verify-full") ?? "verify-full";
+const SSL_MODE =
+  (process.env.QG_TARGET_SSL_MODE as "disable" | "require" | "verify-full") ?? "verify-full";
 const CONNECTION_MODE = (process.env.QG_CONNECTION_MODE ?? "both") as ConnectionMode;
 const POLL_INTERVAL_MS = Number(process.env.QG_POLL_INTERVAL_MS ?? 30_000);
 const API_INGEST_URL = process.env.QG_API_INGEST_URL ?? "http://api:4000/api/ingest";
 const API_TOKEN = process.env.QG_API_TOKEN ?? "";
 const DATABASE_NAME = process.env.QG_DATABASE_NAME ?? "demo";
-const AUTO_EXPLAIN_LOG_PATH = process.env.QG_AUTO_EXPLAIN_LOG_PATH ?? "/var/log/postgresql/postgresql.log";
+const AUTO_EXPLAIN_LOG_PATH =
+  process.env.QG_AUTO_EXPLAIN_LOG_PATH ?? "/var/lib/postgresql/log/postgresql.json";
+const AUTO_EXPLAIN_DATABASE = process.env.QG_AUTO_EXPLAIN_DATABASE;
 
 function requireEnv(name: string): string {
   const val = process.env[name];
@@ -82,6 +85,7 @@ async function main() {
 
   if (CONNECTION_MODE === "log_tail" || CONNECTION_MODE === "both") {
     tailAutoExplainLog(AUTO_EXPLAIN_LOG_PATH, (entry) => {
+      if (AUTO_EXPLAIN_DATABASE && entry.database_name !== AUTO_EXPLAIN_DATABASE) return;
       if (!entry.query) return;
       const { normalizedQuery, queryHash } = fingerprintQuery(entry.query);
       console.log(`[collector] auto_explain entry: ${entry.duration_ms}ms`, entry.query.slice(0, 80));

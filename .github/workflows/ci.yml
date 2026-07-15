@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      QG_E2E_ADMIN_PASSWORD: ci-admin-password
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Configure Compose secrets
+        run: |
+          node -e "require('argon2').hash(process.env.QG_E2E_ADMIN_PASSWORD).then(v => console.log('QG_ADMIN_PASSWORD_HASH=' + v))" > .env
+          node -e "const c=require('node:crypto'); console.log('QG_SESSION_SECRET='+c.randomBytes(32).toString('base64url')); console.log('QG_INGEST_TOKEN='+c.randomBytes(32).toString('base64url')); console.log('QG_ENCRYPTION_KEY='+c.randomBytes(32).toString('base64url'))" >> .env
+      - name: Start demo stack
+        run: docker compose up --build --detach --wait
+      - name: Wait for collector startup
+        run: |
+          for attempt in $(seq 1 30); do
+            if docker compose logs collector | grep -q 'started in'; then exit 0; fi
+            sleep 1
+          done
+          docker compose logs collector
+          exit 1
+      - name: Run seed workload
+        run: node scripts/seed-workload.mjs
+      - name: Wait for seeded detections
+        run: |
+          for attempt in $(seq 1 24); do
+            body=$(curl --silent --cookie-jar cookies.txt --header 'content-type: application/json' --data '{"password":"ci-admin-password"}' http://127.0.0.1:4000/api/auth/login)
+            queries=$(curl --silent --cookie cookies.txt http://127.0.0.1:4000/api/queries)
+            suggestions=$(curl --silent --cookie cookies.txt http://127.0.0.1:4000/api/suggestions)
+            patterns=$(curl --silent --cookie cookies.txt http://127.0.0.1:4000/api/n-plus-one)
+            if echo "$queries" | grep -q 'normalizedQuery' && echo "$suggestions" | grep -q 'suggestedDdl' && echo "$patterns" | grep -q 'patternHash'; then exit 0; fi
+            sleep 5
+          done
+          docker compose logs
+          exit 1
+      - run: npm run test:e2e
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          if-no-files-found: ignore
+      - if: always()
+        run: docker compose down --volumes

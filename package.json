@@ -14,11 +14,20 @@
     "dev:collector": "npm run dev --workspace=packages/collector",
     "dev:dashboard": "npm run dev --workspace=packages/dashboard",
     "db:migrate": "npm run db:migrate --workspace=packages/api",
+    "lint": "eslint .",
     "test": "npm run test --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "test:e2e": "playwright test",
+    "typecheck": "npm run build --workspace=packages/core && npm run typecheck --workspaces --if-present"
   },
   "devDependencies": {
-    "typescript": "^5.6.3"
+    "@eslint/js": "^9.31.0",
+    "@playwright/test": "^1.54.1",
+    "eslint": "^9.31.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^16.3.0",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.38.0",
+    "vitest": "^2.1.8"
   },
   "engines": {
     "node": ">=20"

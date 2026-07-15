@@ -32,8 +32,11 @@ export async function queryRoutes(app: FastifyInstance) {
     const suggestionCounts = db
       .select({
         fingerprintId: indexSuggestions.fingerprintId,
-        suggestionCount: sql<number>`count(*)::int`,
-        pendingSuggestionCount: sql<number>`count(*) filter (where ${indexSuggestions.status} = 'pending')::int`,
+        suggestionCount: sql<number>`count(*)::int`.as("suggestion_count"),
+        pendingSuggestionCount:
+          sql<number>`count(*) filter (where ${indexSuggestions.status} = 'pending')::int`.as(
+            "pending_suggestion_count"
+          ),
       })
       .from(indexSuggestions)
       .groupBy(indexSuggestions.fingerprintId)

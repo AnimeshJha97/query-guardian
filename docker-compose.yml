@@ -9,7 +9,7 @@ services:
       - "5432:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
-      - pg_logs:/var/lib/postgresql/data/pglog
+      - pg_logs:/var/lib/postgresql/log
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -30,6 +30,8 @@ services:
       QG_SESSION_SECRET: ${QG_SESSION_SECRET}
       QG_INGEST_TOKEN: ${QG_INGEST_TOKEN}
       QG_ENCRYPTION_KEY: ${QG_ENCRYPTION_KEY}
+      # Local HTTP demo only; production deployments terminate TLS.
+      QG_COOKIE_SECURE: "false"
     ports:
       - "4000:4000"
 
@@ -42,16 +44,19 @@ services:
         condition: service_healthy
     environment:
       QG_TARGET_DATABASE_URL: postgres://query_guardian_reader:qg_reader_dev_password@postgres:5432/appdb
-      QG_TARGET_SSL_MODE: require
+      # The bundled Postgres is reachable only on the private Compose network
+      # and has no TLS certificate. Real deployments must use require/verify-full.
+      QG_TARGET_SSL_MODE: disable
       QG_CONNECTION_MODE: both
       QG_POLL_INTERVAL_MS: 30000
       QG_API_INGEST_URL: http://api:4000/api/ingest
       QG_API_TOKEN: ${QG_INGEST_TOKEN}
       # Display name the collector registers itself under on first ingest.
       QG_DATABASE_NAME: demo
-      QG_AUTO_EXPLAIN_LOG_PATH: /var/log/postgresql/postgresql.log
+      QG_AUTO_EXPLAIN_LOG_PATH: /var/lib/postgresql/log/postgresql.json
+      QG_AUTO_EXPLAIN_DATABASE: appdb
     volumes:
-      - pg_logs:/var/log/postgresql:ro
+      - pg_logs:/var/lib/postgresql/log:ro
 
   dashboard:
     build:
