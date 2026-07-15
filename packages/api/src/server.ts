@@ -8,8 +8,10 @@ import { queryRoutes } from "./routes/queries.js";
 import { suggestionRoutes } from "./routes/suggestions.js";
 import { startPatternDetectionJob } from "./jobs/detectPatterns.js";
 import { authRoutes } from "./routes/auth.js";
+import { pool } from "./db/client.js";
+import { startSnapshotRollupJob } from "./jobs/rollupSnapshots.js";
 
-const app = Fastify({ logger: true });
+const app = Fastify({ logger: { level: process.env.QG_LOG_LEVEL ?? "info" } });
 
 // Schema migrations run automatically on startup (docs/installation.md) —
 // a fresh `docker compose up` must work with no manual migrate step.
@@ -22,6 +24,15 @@ try {
 }
 
 app.get("/health", async () => ({ status: "ok" }));
+app.get("/ready", async (_req, reply) => {
+  try {
+    await pool.query("SELECT 1");
+    return { status: "ready" };
+  } catch (err) {
+    app.log.warn({ err }, "readiness check failed");
+    return reply.code(503).send({ status: "not_ready" });
+  }
+});
 
 // Unauthenticated on purpose — the dashboard needs this before login to
 // decide which UI to render.
@@ -35,8 +46,11 @@ await app.register(queryRoutes, { prefix: "/api" });
 await app.register(suggestionRoutes, { prefix: "/api" });
 
 const stopPatternDetectionJob = startPatternDetectionJob(app.log);
+const stopSnapshotRollupJob = startSnapshotRollupJob(app.log);
 app.addHook("onClose", async () => {
   stopPatternDetectionJob();
+  stopSnapshotRollupJob();
+  await pool.end();
 });
 
 const port = Number(process.env.PORT ?? 4000);

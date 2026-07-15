@@ -152,11 +152,11 @@ Right now the collector only logs to stdout.
 **Goal:** operable in production without SSH-ing in and guessing.
 
 **Tasks**
-- [ ] Structured JSON logging via Fastify's built-in Pino, log level from `QG_LOG_LEVEL`
-- [ ] `/health` (liveness) and `/ready` (readiness — checks metadata DB connectivity) on the API; equivalent lightweight check in the collector
-- [ ] Resource limits + restart policies in `docker-compose.prod.yml`
-- [ ] Backup guidance + a `scripts/backup-metadata-db.sh` (`pg_dump` wrapper) for the metadata store
-- [ ] Retention/rollup job for `query_stats_snapshots` (raw snapshots older than N days get rolled into daily aggregates) so the metadata DB doesn't grow unbounded — self-hosted default 7 days per the architecture doc
+- [x] Structured JSON logging via Fastify's built-in Pino, log level from `QG_LOG_LEVEL`
+- [x] `/health` (liveness) and `/ready` (readiness — checks metadata DB connectivity) on the API; equivalent lightweight check in the collector
+- [x] Resource limits + restart policies in `docker-compose.prod.yml`
+- [x] Backup guidance + a `scripts/backup-metadata-db.sh` (`pg_dump` wrapper) for the metadata store
+- [x] Retention/rollup job for `query_stats_snapshots` (raw snapshots older than N days get rolled into daily aggregates) so the metadata DB doesn't grow unbounded — self-hosted default 7 days per the architecture doc
 
 **Files touched:** `packages/api/src/server.ts`, `docker-compose.prod.yml` (new), `scripts/backup-metadata-db.sh` (new), `packages/api/src/jobs/rollupSnapshots.ts` (new).
 

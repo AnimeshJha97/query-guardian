@@ -6,6 +6,7 @@ import { db } from "../db/client.js";
 import {
   queryFingerprints,
   queryStatsSnapshots,
+  queryStatsDailyRollups,
   slowQueryEvents,
   explainPlans,
   indexSuggestions,
@@ -93,11 +94,18 @@ export async function queryRoutes(app: FastifyInstance) {
       .orderBy(desc(queryStatsSnapshots.collectedAt))
       .limit(500);
 
+    const rollups = await db
+      .select()
+      .from(queryStatsDailyRollups)
+      .where(eq(queryStatsDailyRollups.fingerprintId, fingerprint.id))
+      .orderBy(desc(queryStatsDailyRollups.bucketDate))
+      .limit(365);
+
     // Raw snapshots are cumulative pg_stat_statements counters; deltas are
     // the per-interval view (computed at read time — see core/deltas.ts).
     const deltas = computeSnapshotDeltas(snapshots);
 
-    return { fingerprint, snapshots, deltas };
+    return { fingerprint, snapshots, deltas, rollups };
   });
 
   // Most recent EXPLAIN plan captured for this fingerprint via auto_explain.

@@ -1,0 +1,71 @@
+services:
+  api:
+    build: { context: ., dockerfile: packages/api/Dockerfile }
+    restart: unless-stopped
+    environment:
+      PORT: 4000
+      QG_METADATA_DATABASE_URL: ${QG_METADATA_DATABASE_URL:?required}
+      QG_ADMIN_PASSWORD_HASH: ${QG_ADMIN_PASSWORD_HASH:?required}
+      QG_SESSION_SECRET: ${QG_SESSION_SECRET:?required}
+      QG_INGEST_TOKEN: ${QG_INGEST_TOKEN:?required}
+      QG_ENCRYPTION_KEY: ${QG_ENCRYPTION_KEY:?required}
+      QG_COOKIE_SECURE: "true"
+      QG_LOG_LEVEL: ${QG_LOG_LEVEL:-info}
+      QG_RAW_RETENTION_DAYS: ${QG_RAW_RETENTION_DAYS:-7}
+      QG_ROLLUP_INTERVAL_MS: ${QG_ROLLUP_INTERVAL_MS:-3600000}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits: { cpus: "1.0", memory: 512M }
+        reservations: { cpus: "0.25", memory: 128M }
+
+  collector:
+    build: { context: ., dockerfile: packages/collector/Dockerfile }
+    restart: unless-stopped
+    depends_on:
+      api: { condition: service_healthy }
+    environment:
+      QG_TARGET_DATABASE_URL: ${QG_TARGET_DATABASE_URL:?required}
+      QG_TARGET_SSL_MODE: ${QG_TARGET_SSL_MODE:-verify-full}
+      QG_CONNECTION_MODE: ${QG_CONNECTION_MODE:-direct}
+      QG_POLL_INTERVAL_MS: ${QG_POLL_INTERVAL_MS:-30000}
+      QG_API_INGEST_URL: http://api:4000/api/ingest
+      QG_API_TOKEN: ${QG_INGEST_TOKEN:?required}
+      QG_DATABASE_NAME: ${QG_DATABASE_NAME:-production}
+      QG_AUTO_EXPLAIN_LOG_PATH: ${QG_AUTO_EXPLAIN_LOG_PATH:-/var/log/postgresql/postgresql.json}
+      QG_AUTO_EXPLAIN_DATABASE: ${QG_AUTO_EXPLAIN_DATABASE:-}
+      QG_HEALTH_PORT: 4100
+      QG_LOG_LEVEL: ${QG_LOG_LEVEL:-info}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4100/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits: { cpus: "0.5", memory: 256M }
+        reservations: { cpus: "0.1", memory: 64M }
+
+  dashboard:
+    build: { context: ., dockerfile: packages/dashboard/Dockerfile }
+    restart: unless-stopped
+    depends_on:
+      api: { condition: service_healthy }
+    environment:
+      QG_API_URL: http://api:4000
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits: { cpus: "0.25", memory: 128M }
+        reservations: { cpus: "0.05", memory: 32M }
+

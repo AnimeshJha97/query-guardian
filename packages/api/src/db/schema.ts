@@ -7,6 +7,7 @@ import {
   doublePrecision,
   jsonb,
   boolean,
+  date,
   pgEnum,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
@@ -101,6 +102,34 @@ export const queryStatsSnapshots = pgTable(
     fpCollectedIdx: uniqueIndex("query_stats_snapshots_fp_collected_idx").on(
       table.fingerprintId,
       table.collectedAt
+    ),
+  })
+);
+
+export const queryStatsDailyRollups = pgTable(
+  "query_stats_daily_rollups",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    fingerprintId: uuid("fingerprint_id").notNull().references(() => queryFingerprints.id),
+    bucketDate: date("bucket_date", { mode: "string" }).notNull(),
+    snapshotCount: integer("snapshot_count").notNull(),
+    firstCollectedAt: timestamp("first_collected_at", { withTimezone: true }).notNull(),
+    lastCollectedAt: timestamp("last_collected_at", { withTimezone: true }).notNull(),
+    firstCalls: integer("first_calls").notNull(),
+    lastCalls: integer("last_calls").notNull(),
+    firstTotalExecTimeMs: doublePrecision("first_total_exec_time_ms").notNull(),
+    lastTotalExecTimeMs: doublePrecision("last_total_exec_time_ms").notNull(),
+    firstRows: integer("first_rows").notNull(),
+    lastRows: integer("last_rows").notNull(),
+    avgMeanExecTimeMs: doublePrecision("avg_mean_exec_time_ms").notNull(),
+    lastSharedBlksHit: integer("last_shared_blks_hit").notNull(),
+    lastSharedBlksRead: integer("last_shared_blks_read").notNull(),
+    lastTempBlksWritten: integer("last_temp_blks_written").notNull(),
+  },
+  (table) => ({
+    fpBucketIdx: uniqueIndex("query_stats_daily_rollups_fp_bucket_idx").on(
+      table.fingerprintId,
+      table.bucketDate
     ),
   })
 );

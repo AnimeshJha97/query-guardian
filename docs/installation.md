@@ -188,6 +188,9 @@ grant, and why Query Guardian never needs write access to your database.
 | `QG_DATABASE_NAME` | collector | `demo` | Display name the collector registers itself under |
 | `QG_AUTO_EXPLAIN_LOG_PATH` | collector | — | Path to the auto_explain log file/mount |
 | `QG_LOG_LEVEL` | api, collector | `info` | Pino log level |
+| `QG_RAW_RETENTION_DAYS` | api | `7` | Days to retain raw snapshots before daily rollup |
+| `QG_ROLLUP_INTERVAL_MS` | api | `3600000` | Snapshot rollup job interval |
+| `QG_HEALTH_PORT` | collector | `4100` | Collector liveness/readiness HTTP port |
 
 Generate a production encryption key with:
 ```bash

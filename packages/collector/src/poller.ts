@@ -50,7 +50,10 @@ export async function pollOnce(pool: pg.Pool): Promise<PollResult> {
 export function startPolling(
   pool: pg.Pool,
   intervalMs: number,
-  onPoll: (result: PollResult) => Promise<void>
+  onPoll: (result: PollResult) => Promise<void>,
+  log: { error: (obj: object, msg: string) => void } = {
+    error: (obj, msg) => console.error(msg, obj),
+  }
 ): () => void {
   let stopped = false;
 
@@ -60,7 +63,7 @@ export function startPolling(
       const result = await pollOnce(pool);
       await onPoll(result);
     } catch (err) {
-      console.error("[collector] poll failed:", err);
+      log.error({ err }, "collector poll failed");
     } finally {
       if (!stopped) setTimeout(tick, intervalMs);
     }
