@@ -1,4 +1,4 @@
-FROM node:22-slim AS builder
+FROM node:25-slim AS builder
 WORKDIR /repo
 COPY package.json package-lock.json ./
 COPY packages/dashboard/package.json packages/dashboard/package.json
