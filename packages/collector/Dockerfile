@@ -1,4 +1,4 @@
-FROM node:22-slim AS build
+FROM node:25-slim AS build
 WORKDIR /repo
 COPY package.json package-lock.json* ./
 COPY packages/core/package.json packages/core/package.json
@@ -11,7 +11,7 @@ RUN npm run build --workspace=packages/core
 RUN npm run build --workspace=packages/collector
 RUN npm prune --omit=dev
 
-FROM node:22-slim
+FROM node:25-slim
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --chown=node:node --from=build /repo/node_modules node_modules
